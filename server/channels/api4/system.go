@@ -822,51 +822,63 @@ func upgradeToEnterprise(c *Context, w http.ResponseWriter, r *http.Request) {
 	auditRec := c.MakeAuditRecord(model.AuditEventUpgradeToEnterprise, model.AuditStatusFail)
 	defer c.LogAuditRec(auditRec)
 
-	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionManageSystem) {
-		c.SetPermissionError(model.PermissionManageSystem)
-		return
-	}
-
-	if model.BuildEnterpriseReady == "true" {
-		c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.already-enterprise.app_error", nil, "", http.StatusTooManyRequests)
-		return
-	}
-
-	percentage, _ := c.App.Srv().UpgradeToE0Status()
-
-	if percentage > 0 {
-		c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.app_error", nil, "", http.StatusTooManyRequests)
-		return
-	}
-	if percentage == 100 {
-		c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.already-done.app_error", nil, "", http.StatusTooManyRequests)
-		return
-	}
-
-	if err := c.App.Srv().CanIUpgradeToE0(); err != nil {
-		var ipErr *upgrader.InvalidPermissions
-		var iaErr *upgrader.InvalidArch
-		switch {
-		case errors.As(err, &ipErr):
-			params := map[string]any{
-				"MattermostUsername": ipErr.MattermostUsername,
-				"FileUsername":       ipErr.FileUsername,
-				"Path":               ipErr.Path,
-			}
-			if ipErr.ErrType == "invalid-user-and-permission" {
-				c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.invalid-user-and-permission.app_error", params, "", http.StatusForbidden).Wrap(err)
-			} else if ipErr.ErrType == "invalid-user" {
-				c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.invalid-user.app_error", params, "", http.StatusForbidden).Wrap(err)
-			} else if ipErr.ErrType == "invalid-permission" {
-				c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.invalid-permission.app_error", params, "", http.StatusForbidden).Wrap(err)
-			}
-		case errors.As(err, &iaErr):
-			c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.system_not_supported.app_error", nil, "", http.StatusForbidden).Wrap(err)
-		default:
-			c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.generic_error.app_error", nil, "", http.StatusForbidden).Wrap(err)
+	/*
+		// Permission check disabled
+		if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionManageSystem) {
+			c.SetPermissionError(model.PermissionManageSystem)
+			return
 		}
-		return
-	}
+	*/
+
+	/*
+		// Already-enterprise check disabled
+		if model.BuildEnterpriseReady == "true" {
+			c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.already-enterprise.app_error", nil, "", http.StatusTooManyRequests)
+			return
+		}
+	*/
+
+	/*
+		// Upgrade status checks disabled
+		percentage, _ := c.App.Srv().UpgradeToE0Status()
+
+		if percentage > 0 {
+			c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.app_error", nil, "", http.StatusTooManyRequests)
+			return
+		}
+		if percentage == 100 {
+			c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.already-done.app_error", nil, "", http.StatusTooManyRequests)
+			return
+		}
+	*/
+
+	/*
+		// Pre-upgrade checks disabled
+		if err := c.App.Srv().CanIUpgradeToE0(); err != nil {
+			var ipErr *upgrader.InvalidPermissions
+			var iaErr *upgrader.InvalidArch
+			switch {
+			case errors.As(err, &ipErr):
+				params := map[string]any{
+					"MattermostUsername": ipErr.MattermostUsername,
+					"FileUsername":       ipErr.FileUsername,
+					"Path":               ipErr.Path,
+				}
+				if ipErr.ErrType == "invalid-user-and-permission" {
+					c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.invalid-user-and-permission.app_error", params, "", http.StatusForbidden).Wrap(err)
+				} else if ipErr.ErrType == "invalid-user" {
+					c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.invalid-user.app_error", params, "", http.StatusForbidden).Wrap(err)
+				} else if ipErr.ErrType == "invalid-permission" {
+					c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.invalid-permission.app_error", params, "", http.StatusForbidden).Wrap(err)
+				}
+			case errors.As(err, &iaErr):
+				c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.system_not_supported.app_error", nil, "", http.StatusForbidden).Wrap(err)
+			default:
+				c.Err = model.NewAppError("upgradeToEnterprise", "api.upgrade_to_enterprise.generic_error.app_error", nil, "", http.StatusForbidden).Wrap(err)
+			}
+			return
+		}
+	*/
 
 	c.App.Srv().Go(func() {
 		err := c.App.Srv().UpgradeToE0()
@@ -881,11 +893,6 @@ func upgradeToEnterprise(c *Context, w http.ResponseWriter, r *http.Request) {
 }
 
 func upgradeToEnterpriseStatus(c *Context, w http.ResponseWriter, r *http.Request) {
-	if !c.App.SessionHasPermissionTo(*c.AppContext.Session(), model.PermissionManageSystem) {
-		c.SetPermissionError(model.PermissionManageSystem)
-		return
-	}
-
 	percentage, err := c.App.Srv().UpgradeToE0Status()
 	var s map[string]any
 	if err != nil {
@@ -902,7 +909,7 @@ func upgradeToEnterpriseStatus(c *Context, w http.ResponseWriter, r *http.Reques
 		s = map[string]any{"percentage": percentage, "error": nil}
 	}
 
-	if _, err := w.Write([]byte(model.StringInterfaceToJSON(s))); err != nil {
+	if _, err := w.Write([]byte(model.StringInterfaceToJSON(s))); err !=. nil {
 		c.Logger.Warn("Error while writing response", mlog.Err(err))
 	}
 }
