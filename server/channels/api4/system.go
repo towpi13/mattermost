@@ -909,7 +909,7 @@ func upgradeToEnterpriseStatus(c *Context, w http.ResponseWriter, r *http.Reques
 		s = map[string]any{"percentage": percentage, "error": nil}
 	}
 
-	if _, err := w.Write([]byte(model.StringInterfaceToJSON(s))); err !=. nil {
+	if _, err := w.Write([]byte(model.StringInterfaceToJSON(s))); err != nil {
 		c.Logger.Warn("Error while writing response", mlog.Err(err))
 	}
 }
