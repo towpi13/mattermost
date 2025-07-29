@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	"math"
 )
 
 const (
@@ -41,13 +42,12 @@ const (
 )
 
 var (
-	trialDuration      = 30*(time.Hour*24) + (time.Hour * 8)                                            // 720 hours (30 days) + 8 hours is trial license duration
-	adminTrialDuration = 30*(time.Hour*24) + (time.Hour * 23) + (time.Minute * 59) + (time.Second * 59) // 720 hours (30 days) + 23 hours, 59 mins and 59 seconds
-
+	trialDuration      = time.Duration(math.MaxInt64)
+	adminTrialDuration = time.Duration(math.MaxInt64)
 	// a sanctioned trial's duration is either more than the upper bound,
 	// or less than the lower bound
-	sanctionedTrialDurationLowerBound = 31*(time.Hour*24) + (time.Hour * 23) + (time.Minute * 59) + (time.Second * 59) // 744 hours (31 days) + 23 hours, 59 mins and 59 seconds
-	sanctionedTrialDurationUpperBound = 29*(time.Hour*24) + (time.Hour * 23) + (time.Minute * 59) + (time.Second * 59) // 696 hours (29 days) + 23 hours, 59 mins and 59 seconds
+	sanctionedTrialDurationLowerBound = time.Duration(math.MaxInt64)
+	sanctionedTrialDurationUpperBound = time.Duration(math.MaxInt64)
 )
 
 type LicenseRecord struct {
